@@ -33,14 +33,16 @@ namespace Frontend {
 class EmuWindow;
 }
 
-class ShaderProgramManager;
-
 namespace OpenGL {
+class ShaderProgramManager;
 
 class RasterizerOpenGL : public VideoCore::RasterizerInterface {
 public:
-    explicit RasterizerOpenGL(Frontend::EmuWindow& renderer);
+    explicit RasterizerOpenGL();
     ~RasterizerOpenGL() override;
+
+    void LoadDiskResources(const std::atomic_bool& stop_loading,
+                           const VideoCore::DiskResourceLoadCallback& callback) override;
 
     void AddTriangle(const Pica::Shader::OutputVertex& v0, const Pica::Shader::OutputVertex& v1,
                      const Pica::Shader::OutputVertex& v2) override;
@@ -50,12 +52,16 @@ public:
     void FlushRegion(PAddr addr, u32 size) override;
     void InvalidateRegion(PAddr addr, u32 size) override;
     void FlushAndInvalidateRegion(PAddr addr, u32 size) override;
+    void ClearAll(bool flush) override;
     bool AccelerateDisplayTransfer(const GPU::Regs::DisplayTransferConfig& config) override;
     bool AccelerateTextureCopy(const GPU::Regs::DisplayTransferConfig& config) override;
     bool AccelerateFill(const GPU::Regs::MemoryFillConfig& config) override;
     bool AccelerateDisplay(const GPU::Regs::FramebufferConfig& config, PAddr framebuffer_addr,
                            u32 pixel_stride, ScreenInfo& screen_info) override;
     bool AccelerateDrawBatch(bool is_indexed) override;
+
+    /// Syncs entire status to match PICA registers
+    void SyncEntireState() override;
 
 private:
     struct SamplerInfo {
@@ -128,9 +134,6 @@ private:
         GLvec3 view;
     };
 
-    /// Syncs entire status to match PICA registers
-    void SyncEntireState();
-
     /// Syncs the clip enabled status to match the PICA register
     void SyncClipEnabled();
 
@@ -192,7 +195,8 @@ private:
     void SyncCombinerColor();
 
     /// Syncs the TEV constant color to match the PICA register
-    void SyncTevConstColor(int tev_index, const Pica::TexturingRegs::TevStageConfig& tev_stage);
+    void SyncTevConstColor(std::size_t tev_index,
+                           const Pica::TexturingRegs::TevStageConfig& tev_stage);
 
     /// Syncs the lighting global ambient color to match the PICA register
     void SyncGlobalAmbient();
@@ -265,11 +269,9 @@ private:
 
     RasterizerCacheOpenGL res_cache;
 
-    Frontend::EmuWindow& emu_window;
-
     std::vector<HardwareVertex> vertex_batch;
 
-    bool shader_dirty;
+    bool shader_dirty = true;
 
     struct {
         UniformData data;
