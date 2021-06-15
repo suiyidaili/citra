@@ -106,8 +106,8 @@ ShaderDiskCache::ShaderDiskCache(bool separable) : separable{separable} {}
 
 std::optional<std::vector<ShaderDiskCacheRaw>> ShaderDiskCache::LoadTransferable() {
     const bool has_title_id = GetProgramID() != 0;
-    if (!Settings::values.use_hw_shader || !Settings::values.shaders_accurate_mul ||
-        !Settings::values.use_disk_shader_cache || !has_title_id) {
+    if (!Settings::values.use_hw_shader || !Settings::values.use_disk_shader_cache ||
+        !has_title_id) {
         return std::nullopt;
     }
     tried_to_load = true;
@@ -365,6 +365,10 @@ void ShaderDiskCache::SaveDecompiled(u64 unique_identifier,
 void ShaderDiskCache::SaveDump(u64 unique_identifier, GLuint program) {
     if (!IsUsable())
         return;
+    if (!GLAD_GL_ARB_get_program_binary) {
+        LOG_WARNING(Render_OpenGL, "ARB_get_program_binary is not supported. Problems may occur if "
+                                   "use_disk_shader_cache is ON.");
+    }
 
     GLint binary_length{};
     glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &binary_length);

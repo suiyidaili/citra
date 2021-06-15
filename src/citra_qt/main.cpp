@@ -190,7 +190,20 @@ GMainWindow::GMainWindow()
     LOG_INFO(Frontend, "Citra Version: {} | {}-{}", Common::g_build_fullname, Common::g_scm_branch,
              Common::g_scm_desc);
 #ifdef ARCHITECTURE_x86_64
-    LOG_INFO(Frontend, "Host CPU: {}", Common::GetCPUCaps().cpu_string);
+    const auto& caps = Common::GetCPUCaps();
+    std::string cpu_string = caps.cpu_string;
+    if (caps.avx || caps.avx2 || caps.avx512) {
+        cpu_string += " | AVX";
+        if (caps.avx512) {
+            cpu_string += "512";
+        } else if (caps.avx2) {
+            cpu_string += '2';
+        }
+        if (caps.fma || caps.fma4) {
+            cpu_string += " | FMA";
+        }
+    }
+    LOG_INFO(Frontend, "Host CPU: {}", cpu_string);
 #endif
     LOG_INFO(Frontend, "Host OS: {}", QSysInfo::prettyProductName().toStdString());
     UpdateWindowTitle();
@@ -989,7 +1002,7 @@ bool GMainWindow::LoadROM(const QString& filename) {
 
     game_path = filename;
 
-    system.TelemetrySession().AddField(Telemetry::FieldType::App, "Frontend", "Qt");
+    system.TelemetrySession().AddField(Common::Telemetry::FieldType::App, "Frontend", "Qt");
     return true;
 }
 
@@ -1459,7 +1472,6 @@ void GMainWindow::InstallCIA(QStringList filepaths) {
     progress_bar->setMaximum(INT_MAX);
 
     QtConcurrent::run([&, filepaths] {
-        QString current_path;
         Service::AM::InstallStatus status;
         const auto cia_progress = [&](std::size_t written, std::size_t total) {
             emit UpdateProgress(written, total);
@@ -2102,15 +2114,15 @@ void GMainWindow::OnMouseActivity() {
     ShowMouseCursor();
 }
 
-void GMainWindow::mouseMoveEvent(QMouseEvent* event) {
+void GMainWindow::mouseMoveEvent([[maybe_unused]] QMouseEvent* event) {
     OnMouseActivity();
 }
 
-void GMainWindow::mousePressEvent(QMouseEvent* event) {
+void GMainWindow::mousePressEvent([[maybe_unused]] QMouseEvent* event) {
     OnMouseActivity();
 }
 
-void GMainWindow::mouseReleaseEvent(QMouseEvent* event) {
+void GMainWindow::mouseReleaseEvent([[maybe_unused]] QMouseEvent* event) {
     OnMouseActivity();
 }
 

@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <QThread>
 #include <QWidget>
@@ -15,7 +16,6 @@
 #include "core/frontend/emu_window.h"
 
 class QKeyEvent;
-class QScreen;
 class QTouchEvent;
 class QOffscreenSurface;
 class QOpenGLContext;
@@ -36,8 +36,8 @@ public:
     void DoneCurrent() override;
 
 private:
-    QOpenGLContext* context;
-    QOffscreenSurface* surface;
+    std::unique_ptr<QOpenGLContext> context;
+    std::unique_ptr<QOffscreenSurface> surface;
 };
 
 class EmuThread final : public QThread {
@@ -138,7 +138,7 @@ protected:
     void exposeEvent(QExposeEvent* event) override;
 
 private:
-    QOpenGLContext* context;
+    std::unique_ptr<QOpenGLContext> context;
     QWidget* event_handler;
 };
 
